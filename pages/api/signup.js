@@ -1,8 +1,8 @@
-import { createUser } from '../../modules/user/user.service'
+import { createUser, findUser } from '../../modules/user/user.service'
 //import handler from '../../lib/middlewares/nextConnect' #Retirado createHandler
 import Handler from '../../lib/middlewares/nextConnect'
 
-import { getIronSession } from 'iron-session'
+import { getIronSession, sealData } from 'iron-session'
 import { SMTPClient } from 'emailjs'
 
 const client = new SMTPClient({
@@ -21,8 +21,13 @@ createHandler.post(async (req, res) => {
         })
         session.email = req.body.email
         session.password = req.body.password
-        await session.save
         const signup = await createUser(req.body)
+        session.req = signup._id
+        await session.isLoggedIn
+        sealData(session, {
+            password: `${process.env.passSession}`
+        })
+        await session.save
         console.log(signup.status)
         res.status(201).send(signup)
         client.send(
